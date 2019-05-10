@@ -1,0 +1,128 @@
+A) Description
+As part of the HW2 Assignment, this code modifies the wrappable stackable file system to add the "backup file system" (bkpfs) functionality.
+BKPFS gives the user the ability to revert/view/delete different versions of the file.
+
+B) Design
+1) Every time the user opens the file to write, a backup of the file is created. I have chosen this policy as it can record any changes made in to the file.
+2) Currently there are '5' backup files created, while the code completely supports any 'n' backup files created, I have hardcoded n=5, this can be changed subject to giving options while mounting.
+3) Let's say if the file is opened n+1 times for writing, where 'n' is the number of backups to be created in the policy. the 1st backup file shall be deleted. As at all times there need to be only 'n' backup files.
+4) The code allows functionalitites such as restore, delete and list backups.
+5) I have used a classic two pointer approach to help with main implementation. Where One pointer stores the older version of the file and the other one the newer version.
+
+C) Tradeoffs
+1) One tradeoff with using backups every time a file is written is that if the changes to the file are really small, it shall not be able to store major changes. For example if I write 'abcd' and then incrementally append 'e','f','g' with every write, by the time 'g' is written, I would have deleted 'abcd' backup file. [n=3 here]
+2) Because of the 2 pointer approach, the selective deleting of a file version is not possible. [Not a part of the HW requirement, but could have been nice to have]
+
+D) Usage 
+1) In the hw2-dkela folder run make
+2) Run in the hw2-dkela folder or you can give the complete path to fs/bkpfs/bkpfs.ko as well.
+	insmod hw2-dkela/fs/bkpfs/bkpfs.ko 
+3) mount -t bkpfs 'folder to be mounted' 'location'
+	Eg- mount -t bkpfs /delete/out/ /mnt/bkpfs
+	Make sure that folders exist.
+4) gcc -Wall /usr/src/hw2-dkela/CSE-506/xhw2.c -o xhw2
+5) ./xhw2 'input file' option
+	
+	Usage: ./xhw2 inputFile {-l | -d delete_option | -v view_option | -r restore_option} [-h HELP] 
+			-l : List all verstions
+			-d : Delete File Version
+			-v : View File Version 
+			-r : Restore File Version
+			-h : Help
+			inputFile: Input File
+			delete_option: "newest" | "oldest" | "all"
+			view_option: "newest" | "oldest" | N (Where N is version number)
+			restore_option: "newest" | "oldest" | "N (Where N is version number)
+	
+	Example - ./xhw2 /mnt/bkpfs/file.txt -l
+	NOTE- Make sure the file is regular. (As given in the assignment description)
+
+E) Functionalities
+>List all versions
+	This functionality lists all version of the backups made.
+	it can be used using-
+		./xhw2 inputFile -l
+
+>Delete backups.
+	This functionality allows the user to delete the oldest or the newest backup made.
+	To delete the oldest backup -
+		./xhw2 inputFile -d oldest
+	To delete the newest backup -
+		./xhw2 inputFile -d newest
+	To delete all backups -
+		./xhw2 inputFile -d all
+>Restore from backup.
+	This functionality allows the user to restore any backup into the orignal file.
+	To restore the oldest backup -
+		./xhw2 inputFile -r oldest
+	To restore the newest backup -
+		./xhw2 inputFile -r newest
+	To restore any version
+		./xhw2 inputFile -r 'N'
+>View backup
+	this functionality allows the user to view a backup file.
+	To view the oldest backup - 
+		./xhw2 inputFile -v oldest
+	To view the newest backup - 
+		./xhw2 inputFile -v newest
+		
+F) Files
+1) file.c in the fs/bkpfs/ folder.
+	This is where most of the code changes are made.
+	Care has been taken to have Zero errors in styling.
+	They Warnings haven't been removed because of more thatn 80 lines in a charcter were leading to other warnings.
+	The main trigger point for the code written is in the bkpfs_write and bkpfs_unlocked_ioctl function.
+2) xhw2.c in the CSE506 folder
+	This is the main user level program which handles all checks.
+3) README in the CSE-506 Folder
+	Documentation of the Design and Usage.
+4) createfile.c in the CSE-506 Folder
+	This is used to create files for Test Cases
+5) master.sh in the CSE-506 Folder
+	This is used as a trigger for all test cases.
+	
+G) TESTING
+	PLEASE NOTE THAT FOR TESTING YOU NEED TO FOLLOW THE FOLLOWING STEPS 3 of USAGE
+	Or You could follow the following steps-
+		1) In the hw2-dkela folder run make
+		2) Run in the hw2-dkela folder or you can give the complete path to fs/bkpfs/bkpfs.ko as well.
+		   insmod hw2-dkela/fs/bkpfs/bkpfs.ko 
+		3) RUN THE MASTER TEST SCRIPT FROM THE CSE-506 FOLDER.
+	
+	The following tthings have been tested in the testcases-
+		1) Creating Multiple BackupFiles
+		2) Creating Backup Files
+		3) Checking if the backupfiles limit to 'n', in this case 5.
+		4) Restoring Oldest backup file.
+		5) Restoring Newest Backup file.
+		6) Restoring Backup file with version. (Now this testcase might give varied results, depending on which version is running)
+		7) Deleting Oldest Backup file.
+		8) Deleting newest Backup file.
+		9) Deleting all Backup files.
+		10) Incorrect version to restore backupfile.
+		11) No argument given for deleting backup file.
+		12) Multiple arguments given for the user level program.
+		13) View oldest file.
+		14) View newest file.
+		15) Incorrect Input as file
+		
+NOTE- 
+	IN CASE YOU WANT TO RUN TESTCASES INDIVIDUALLY DO THE FOLLOWING STEPS-
+		In the CSE506 folder run-
+			cp xhw2.c testcases/.
+			cp createfile_1.c testcases/.
+			cp createfile_2.c testcases/.
+			chmod 777 testcases/*
+		Then individually run each test case 
+			./${file} where file is the test case.
+
+		
+H) REFERENCES
+ 1) Most of the code has been altered to get desired results from wrapfs
+	http://www.fsl.cs.sunysb.edu/pipermail/wrapfs/
+ 2) For ioctls the following tutorial was referred-
+	https://embetronicx.com/tutorials/linux/device-drivers/ioctl-tutorial-in-linux/
+ 3) There are a lot of snippets in the xhw2.c file which have been used from the first xhw1 file I had written.
+			
+			
+	
